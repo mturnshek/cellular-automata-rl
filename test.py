@@ -6,13 +6,13 @@ import sys
 import scipy.ndimage
 
 px = 20
-rows = 20
-cols = 20
+rows = 8
+cols = 8
 height = px*rows
 width = px*cols
 life = Life(rows=rows, cols=cols)
 life.accept_tiles(
-	[(4, 4), (4, 6), (5, 8),
+	[(4, 4), (4, 6), (3, 3),
 	 (3, 4), (5, 5), (6, 6),
 	 (7, 7), (6, 7), (5, 7)],
 	'blue')
