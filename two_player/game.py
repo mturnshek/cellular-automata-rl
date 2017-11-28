@@ -69,11 +69,16 @@ class Game:
         else:
             return 'blue'
 
-    def accept_move(self, cell, player):
-        if player == self.turn and self.is_legal_move(cell, player):
+    def accept_move(self, cell):
+        if self.is_legal_move(cell, self.turn, debug=True):
             self.life.accept_tiles([cell], self.turn)
-
             self.move_tile_counter += 1
+
+            if self.turn == 'red':
+                self.first_red_move = False
+            else:
+                self.first_blue_move = False
+
             if self.move_tile_counter == self.tiles_per_move:
                 if self.turn == 'red':
                     self.turn = 'blue'
@@ -82,15 +87,10 @@ class Game:
                 self.life.advance_state()
                 self.move_tile_counter = 0
 
-            if player == 'red':
-                self.first_red_move = False
-            else:
-                self.first_blue_move = False
-
             return True
         return False
 
-    def is_legal_move(self, cell, player):
+    def is_legal_move(self, cell, player, debug=False):
         """
         All moves must be made on dead or blank tiles.
 
@@ -102,6 +102,7 @@ class Game:
         """
 
         if is_live(self.life.get_cell_value(cell)):
+            if debug: print(f'{self.turn}, {cell}, attempted placement on live tile')
             return False
 
         red_neighbors, blue_neighbors = self.life.neighbors(cell)
@@ -114,11 +115,13 @@ class Game:
 
         if (self.first_red_move and player == 'red') or (self.first_blue_move and player == 'blue'):
             if opponent_neighbors > 0:
+                if debug: print(f'{self.turn}, {cell}, attempted placement next to opponent on first move')
                 return False
             return True
         else:
             if ally_neighbors > 0:
                 return True
+            if debug: print(f'{self.turn}, {cell}, attempted placement away from ally on non-starting move')
             return False
 
     def encoded(self):

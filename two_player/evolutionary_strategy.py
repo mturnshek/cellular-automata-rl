@@ -1,8 +1,10 @@
 from keras.models import clone_model
 import numpy as np
 
-from environment import Environment
-from agent import Agent
+from two_player.environment import Environment
+from two_player.agent import Agent
+from two_player.evaluate import evaluate
+from two_player.playthrough import single_playthrough
 
 
 def spawn_new_model(agent):
@@ -19,33 +21,13 @@ def spawn_new_model(agent):
     return model
 
 
-def single_playthrough(red_agent, blue_agent, env):
-    max_moves = 1000
-    move_count = 0
-    while not env.is_done():
-        if env.turn == 'red':
-            cell = red_agent.act(env.state())
-        else:
-            cell = blue_agent.act(env.state())
-        env.step(cell)
-        move_count += 1
-        if move_count > max_moves:
-            break
-
-    if env.reward('red') == 1:
-        print('Red wins')
-        return red_agent
-    else:
-        print('Blue wins')
-        return blue_agent
-
-
 def evolution(save_path='weights/lineage1.h5'):
     env = Environment()
     red_agent = Agent(env)
     blue_agent = Agent(env)
 
     playthroughs = 10000
+    evaluate_period = 100
 
     for i in range(playthroughs):
         winner = single_playthrough(red_agent, blue_agent, env)
@@ -57,5 +39,9 @@ def evolution(save_path='weights/lineage1.h5'):
             red_agent = Agent(env, model=spawn_new_model(winner))
         env.reset()
         print('playthrough', i)
+
+        if (i % evaluate_period == 0):
+            print('evaluating top agent for 20 playthroughs... ...')
+            print("win rate vs. random agent", evaluate(winner))
 
     winner.model.save_weights(save_path)

@@ -46,7 +46,7 @@ def color(value):
 	else:
 		return 'blue'
 
-# returns count, majority
+
 def neighbors_info(neighbor_values):
 	red = 0
 	blue = 0
@@ -57,11 +57,6 @@ def neighbors_info(neighbor_values):
 				red += 1
 			else:
 				blue += 1
-
-	if red > blue:
-		majority = 'red'
-	else:
-		majority = 'blue'
 
 	return red, blue
 
@@ -113,7 +108,7 @@ class Life:
 		i, j = cell
 		vals = np.copy(np.ravel(self.state[i:i+3, j:j+3]))
 		vals[4] = BLANK # remove the value of the cell itself
-		return neighbors_info(vals) # returns count, majority
+		return neighbors_info(vals) # returns red_count, blue_count
 
 	# sets coordinates in the list 'tiles' to be live with given color
 	def accept_tiles(self, tiles, color):
@@ -124,6 +119,8 @@ class Life:
 		for tile in tiles:
 			if not is_live(self.get_cell_value(tile)):
 				self.set_cell_value(tile, value)
+		if self.display:
+			self.update_display()
 
 	def advance_cell(self, cell):
 		value = self.get_cell_value(cell)
@@ -146,6 +143,20 @@ class Life:
 
 		return next_value
 
+	def advance_state(self):
+		self.next_state = np.zeros(self.state.shape, dtype='uint8')
+		for i in range(self.rows):
+			for j in range(self.cols):
+				self.next_state[i+1][j+1] = self.advance_cell((i, j))
+				# adding 1 due to padding on all sides
+		self.state = np.copy(self.next_state)
+		if self.display:
+			self.update_display()
+
+	def clean(self):
+		# padded with a static 0 value on all edges
+		self.state = np.zeros((self.rows + 2, self.cols + 2), dtype='uint8')
+
 	def update_display(self):
 		if self.display:
 			frame = self.create_frame_for_state()
@@ -155,20 +166,6 @@ class Life:
 				if event.type == pygame.QUIT:
 					pygame.quit()
 					sys.exit()
-
-	def advance_state(self):
-		self.update_display()
-		self.next_state = np.zeros(self.state.shape, dtype='uint8')
-		for i in range(self.rows):
-			for j in range(self.cols):
-				self.next_state[i+1][j+1] = self.advance_cell((i, j))
-				# adding 1 due to padding on all sides
-		self.state = np.copy(self.next_state)
-		self.update_display()
-
-	def clean(self):
-		# padded with a static 0 value on all edges
-		self.state = np.zeros((self.rows + 2, self.cols + 2), dtype='uint8')
 
 	def create_frame_for_state(self):
 		px = self.px
