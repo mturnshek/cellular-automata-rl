@@ -73,14 +73,21 @@ def kill(value):
 #########################
 
 class Life:
-	def __init__(self, rows=8, cols=8, display=True):
+	def __init__(self, rows=6, cols=6, display=True, step=False):
 		self.rows = rows
 		self.cols = cols
 		self.clean()
 
+		self.BLANK = 0
+		self.LIVE_RED = 1
+		self.DEAD_RED = 2
+		self.LIVE_BLUE = 3
+		self.DEAD_BLUE = 4
+
+		self.step = step
 		self.display = display
 		if display:
-			self.px = 20
+			self.px = 40
 			height = self.px*rows
 			width = self.px*cols
 			pygame.init()
@@ -109,6 +116,26 @@ class Life:
 		vals = np.copy(np.ravel(self.state[i:i+3, j:j+3]))
 		vals[4] = BLANK # remove the value of the cell itself
 		return neighbors_info(vals) # returns red_count, blue_count
+
+	def count_live_neighbors(self, cell):
+		red_neighbors, blue_neighbors = self.neighbors(cell)
+		total_neighbors = red_neighbors + blue_neighbors
+		return total_neighbors
+
+	def count_live_red_and_blue(self):
+		n_red, n_blue = 0, 0
+		for i in range(self.rows):
+			for j in range(self.cols):
+				v = self.get_cell_value((i, j))
+				if v == LIVE_RED:
+					n_red += 1
+				elif v == LIVE_BLUE:
+					n_blue += 1
+		return n_red, n_blue
+
+	def count_live_total(self):
+		n_red, n_blue = self.count_live_red_and_blue()
+		return n_red + n_blue
 
 	# sets coordinates in the list 'tiles' to be live with given color
 	def accept_tiles(self, tiles, color):
@@ -166,6 +193,9 @@ class Life:
 				if event.type == pygame.QUIT:
 					pygame.quit()
 					sys.exit()
+
+			if self.step:
+				_ = input(' ')
 
 	def create_frame_for_state(self):
 		px = self.px
