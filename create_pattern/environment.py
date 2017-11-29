@@ -17,7 +17,7 @@ class Environment:
         self.x2_shape = (self.moves_per_round,) # move tile counter
         self.x3_shape = (self.rounds_per_episode,) # round counter
         self.model_board_shape = (self.rows, self.cols*2, 3) # concatenated boards shape
-        self.y_shape = (self.rows*self.cols,) # actions
+        self.y_shape = (self.rows*self.cols + 1,) # actions, one additional for "passing"
 
         self.reset()
 
@@ -38,10 +38,20 @@ class Environment:
         self.life.clean()
 
     def encode_action(self, cell):
-        action = np.zeros(self.rows*self.cols, dtype='bool')
-        i, j = cell
-        action[i*self.cols + j] = 1
+        action = np.zeros(self.y_shape, dtype='bool')
+        if cell == None:
+            action[self.cols*self.rows] = 1
+        else:
+            i, j = cell
+            action[i*self.cols + j] = 1
         return action
+
+    def decode_action(self, action):
+        if action == self.rows*self.cols:
+            return None
+        else:
+            row, col = (action // self.cols, action % self.cols)
+            return (row, col)
 
     def board_state(self):
         # 3 possible cell states
@@ -72,17 +82,19 @@ class Environment:
 
         return (self.board_state(), encoded_move_tile_counter, encoded_round_counter)
 
-    def step(self, cell):
+    def step(self, action):
+        cell = self.decode_action(action)
         if self.is_legal_move(cell):
             # for replay experience
             self.memorize_state()
             self.memorize_action(cell)
 
-            self.life.accept_tiles([cell], self.color)
+            if cell != None: # cell being None would mean the agent "passed"
+                self.life.accept_tiles([cell], self.color)
+                self.first_move = False
+
             self.move_tile_counter += 1
             self.episode_action_n += 1
-
-            self.first_move = False
 
             if self.move_tile_counter == self.moves_per_round:
                 self.life.advance_state()
@@ -106,6 +118,8 @@ class Environment:
 
         After that, the a legal tile placement must neighbor a live tile.
         """
+        if cell == None:
+            return True
         if is_live(self.life.get_cell_value(cell)):
             return False
         if self.first_move:
@@ -119,7 +133,8 @@ class Environment:
         for i in range(self.rows):
             for j in range(self.cols):
                 legal_move_mask[i][j] = self.is_legal_move((i, j))
-        return np.ravel(legal_move_mask)
+        flattened = np.ravel(legal_move_mask)
+        return np.append(flattened, np.array([1]))
 
     def memorize_final_board(self):
         encoded_final_board = self.board_state()

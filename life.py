@@ -73,7 +73,7 @@ def kill(value):
 #########################
 
 class Life:
-	def __init__(self, rows=6, cols=6, display=True, step=False):
+	def __init__(self, rows=10, cols=10, display=True, step=False):
 		self.rows = rows
 		self.cols = cols
 		self.clean()

@@ -3,12 +3,14 @@ import numpy as np
 from create_pattern.environment import Environment
 from create_pattern.agent import Agent
 
-pattern = np.zeros((6, 6, 3), dtype='bool')
-pattern[0, :, 2] = 1
-pattern[1, :, 2] = 1
-pattern[2, :, 2] = 1
+pattern = np.zeros((10, 10, 3), dtype='bool')
+pattern[1, 1, 1] = 1
+pattern[1, 2, 1] = 1
+pattern[2, 1, 1] = 1
+pattern[2, 2, 1] = 1
+
 print(pattern)
 
 env = Environment()
-agent = Agent(env)
+agent = Agent(env, load=False)
 agent.train(pattern)
