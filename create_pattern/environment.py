@@ -141,4 +141,11 @@ class Environment:
         final_board_expanded = np.array([self.final_board]*len(self.board_states), dtype='bool')
         board_states = np.concatenate((self.board_states, final_board_expanded), axis=2)
 
-        return (board_states, self.move_tile_counters, self.round_counters, self.actions)
+        # remove initial padding
+        n = self.episode_action_n
+        board_states = board_states[:n]
+        move_tile_counters = self.move_tile_counters[:n]
+        round_counters = self.round_counters[:n]
+        actions = self.actions[:n]
+
+        return (board_states, move_tile_counters, round_counters, actions)

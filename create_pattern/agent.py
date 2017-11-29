@@ -10,12 +10,12 @@ class Agent:
     def __init__(self, env):
         self.env = env
 
-        self.max_replays = 20000
+        self.max_replays = 40000
         self.replay_index = 0
         self.use_all_replays = False
 
-        self.epsilon = 1.0
-        self.epsilon_max = 1.0 # percentage chance of random action
+        self.epsilon = 0.95
+        self.epsilon_max = 0.95 # percentage chance of random action
         self.epsilon_min = 0.2
         self.move_epsilon_down = True
         self.change_epsilon = True
@@ -30,14 +30,14 @@ class Agent:
         self.create_model()
 
     def alter_epsilon(self):
-        epsilon_movement_rate = 0.05
+        epsilon_movement_rate = 0.02
         if self.move_epsilon_down:
             self.epsilon -= epsilon_movement_rate
-            if self.epsilon < self.epsilon_min:
+            if self.epsilon <= self.epsilon_min:
                 self.move_epsilon_down = False
         else:
             self.epsilon += epsilon_movement_rate
-            if self.epsilon < self.epsilon_min:
+            if self.epsilon >= self.epsilon_max:
                 self.move_epsilon_down = True
 
     def toggle_set_epsilon_to_zero(self):
