@@ -19,7 +19,7 @@ class Agent:
         self.epsilon_min = 0.2
         self.move_epsilon_down = True
         self.change_epsilon = True
-        self.chance_to_pass = 0.25
+        self.chance_to_pass = 0.10
 
         # experience replays for each of the inputs and outputs
         self.replays_x1 = np.zeros((self.max_replays,) + env.model_board_shape)
@@ -89,15 +89,13 @@ class Agent:
         move_tile_counter_input = Input(shape=move_tile_counter_shape)
         round_counter_input = Input(shape=round_counter_shape)
 
-        cnn = Conv2D(128, (5, 5), padding='same', activation='relu')(board_input)
-        cnn = Conv2D(128, (5, 5), padding='same', activation='relu')(cnn)
-        cnn = Dropout(0.3)(cnn)
-        cnn = Conv2D(128, (5, 5), padding='same', activation='relu')(cnn)
-        cnn = Conv2D(128, (5, 5), padding='same', activation='relu')(cnn)
+        cnn = Conv2D(256, (5, 5), padding='same', activation='relu')(board_input)
         cnn = Dropout(0.3)(cnn)
         flat_cnn = Flatten()(cnn)
 
         denses = concatenate([flat_cnn, move_tile_counter_input, round_counter_input])
+        denses = Dense(512, activation='relu')(denses)
+        denses = Dropout(0.3)(denses)
         denses = Dense(512, activation='relu')(denses)
         denses = Dropout(0.3)(denses)
         denses = Dense(512, activation='relu')(denses)
