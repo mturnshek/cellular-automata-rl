@@ -11,6 +11,6 @@ pattern[2, 2, 1] = 1
 
 print(pattern)
 
-env = Environment()
+env = Environment(display=True)
 agent = Agent(env, load=False)
 agent.train(pattern)

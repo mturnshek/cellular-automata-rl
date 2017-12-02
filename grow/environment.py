@@ -3,7 +3,7 @@ import numpy as np
 from life import Life, is_live
 
 class Environment:
-    def __init__(self, rounds_per_episode=8, display=False):
+    def __init__(self, rounds_per_episode=10, display=False):
         self.life = Life(display=display)
         self.rows = self.life.rows
         self.cols = self.life.cols
@@ -15,9 +15,10 @@ class Environment:
         # Inputs and outputs for our models
         self.x1_shape = (self.rows, self.cols, 3) # board state
         self.x2_shape = (self.moves_per_round,) # move tile counter
-        self.x3_shape = (self.rounds_per_episode,) # round counter
-        self.model_board_shape = (self.rows, self.cols*2, 3) # concatenated boards shape
+        self.x3_shape = (self.rounds_per_episode + 1,) # round counter
         self.y_shape = (self.rows*self.cols + 1,) # actions, one additional for "passing"
+
+        self.nb_actions = self.rows*self.cols + 1
 
         self.reset()
 
@@ -28,14 +29,8 @@ class Environment:
         self.move_tile_counter = 0
         self.first_move = True
 
-        max_per_ep = self.rounds_per_episode*self.moves_per_round
-        self.board_states = np.zeros((max_per_ep,) + self.x1_shape, dtype='bool')
-        self.move_tile_counters = np.zeros((max_per_ep,) + self.x2_shape, dtype='bool')
-        self.round_counters = np.zeros((max_per_ep,) + self.x3_shape, dtype='bool')
-        self.actions = np.zeros((max_per_ep,) + self.y_shape, dtype='bool')
-        self.final_board = np.zeros(self.x1_shape, dtype='bool')
-
         self.life.clean()
+        return self.state()
 
     def encode_action(self, cell):
         action = np.zeros(self.y_shape, dtype='bool')
@@ -47,13 +42,19 @@ class Environment:
         return action
 
     def decode_action(self, action):
+        legal_move_mask = self.legal_move_mask()
+
+        if legal_move_mask[action] == 0: # move is illegal
+            return None # illegal move means pass
+
         if action == self.rows*self.cols:
             return None
         else:
             row, col = (action // self.cols, action % self.cols)
             return (row, col)
 
-    def board_state(self):
+    def encode_board(self):
+        """ Returns encoded board state with shape (rows, cols, 3,) """
         # 3 possible cell states
         blank = np.array([1, 0, 0], dtype='bool')
         alive = np.array([0, 1, 0], dtype='bool')
@@ -71,43 +72,49 @@ class Environment:
                     encoded_board[i][j] = dead
         return encoded_board
 
-    def state(self):
-        """ Returns (board_state, move_tile_counter, round_counter)"""
+    def encode_move_tile_counter(self):
+        """ Returns encoded form of how many moves have occured this round """
         move_tile_counter_i_mat = np.identity(self.moves_per_round, dtype='bool')
         encoded_move_tile_counter = move_tile_counter_i_mat[self.move_tile_counter]
+        return encoded_move_tile_counter
 
-        # encoded round_number, which tells you how many rounds have occured this episode
-        round_identity_matrix = np.identity(self.rounds_per_episode, dtype='bool')
+    def encode_round_counter(self):
+        """ Returns encoded form of how many rounds have occured this episode """
+        round_identity_matrix = np.identity(self.rounds_per_episode + 1, dtype='bool')
         encoded_round_counter = round_identity_matrix[self.episode_round_n]
+        return encoded_round_counter
 
-        return (self.board_state(), encoded_move_tile_counter, encoded_round_counter)
+    def state(self):
+        """ Returns [board_state, move_tile_counter, round_counter]"""
+        return self.encode_board(), self.encode_move_tile_counter(), self.encode_round_counter()
 
     def step(self, action):
         cell = self.decode_action(action)
-        if self.is_legal_move(cell):
-            # for replay experience
-            self.memorize_state()
-            self.memorize_action(cell)
+        if cell != None: # cell being None would mean the agent "passed"
+            self.life.accept_tiles([cell], self.color)
+            self.first_move = False
 
-            if cell != None: # cell being None would mean the agent "passed"
-                self.life.accept_tiles([cell], self.color)
-                self.first_move = False
+        self.move_tile_counter += 1
+        self.episode_action_n += 1
 
-            self.move_tile_counter += 1
-            self.episode_action_n += 1
+        if self.move_tile_counter == self.moves_per_round:
+            self.life.advance_state()
+            self.move_tile_counter = 0
+            self.episode_round_n += 1
 
-            if self.move_tile_counter == self.moves_per_round:
-                self.life.advance_state()
-                self.move_tile_counter = 0
-                self.episode_round_n += 1
-            return
+        state = self.state()
+        done = self.is_done()
+        if done:
+            reward = self.life.count_colored()
+        else:
+            reward = 0
+
+        return (state, reward, done, {})
 
     def is_done(self):
         if self.episode_round_n == self.rounds_per_episode:
-            self.memorize_final_board()
             return True
         if self.life.count_live_total() == 0 and self.first_move == False:
-            self.memorize_final_board()
             return True
         return False
 
@@ -135,32 +142,3 @@ class Environment:
                 legal_move_mask[i][j] = self.is_legal_move((i, j))
         flattened = np.ravel(legal_move_mask)
         return np.append(flattened, np.array([1]))
-
-    def memorize_final_board(self):
-        encoded_final_board = self.board_state()
-        self.final_board = encoded_final_board
-
-    def memorize_action(self, cell):
-        i = self.episode_action_n
-        self.actions[i] = self.encode_action(cell)
-
-    def memorize_state(self):
-        i = self.episode_action_n
-        encoded_board, encoded_move_tile_counter, encoded_round_counter = self.state()
-        self.board_states[i] = encoded_board
-        self.move_tile_counters[i] = encoded_move_tile_counter
-        self.round_counters[i] = encoded_round_counter
-
-    def get_episode_memories(self):
-        # put the actual and final board states as a single 'image'
-        final_board_expanded = np.array([self.final_board]*len(self.board_states), dtype='bool')
-        board_states = np.concatenate((self.board_states, final_board_expanded), axis=2)
-
-        # remove initial padding
-        n = self.episode_action_n
-        board_states = board_states[:n]
-        move_tile_counters = self.move_tile_counters[:n]
-        round_counters = self.round_counters[:n]
-        actions = self.actions[:n]
-
-        return (board_states, move_tile_counters, round_counters, actions)

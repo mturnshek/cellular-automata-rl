@@ -73,7 +73,7 @@ def kill(value):
 #########################
 
 class Life:
-	def __init__(self, rows=10, cols=10, display=True, step=False):
+	def __init__(self, rows=10, cols=10, display=False, step=False):
 		self.rows = rows
 		self.cols = cols
 		self.clean()
@@ -136,6 +136,16 @@ class Life:
 	def count_live_total(self):
 		n_red, n_blue = self.count_live_red_and_blue()
 		return n_red + n_blue
+
+	def count_colored(self):
+		n_colored = 0
+		for i in range(self.rows):
+			for j in range(self.cols):
+				v = self.get_cell_value((i, j))
+				if (v == LIVE_RED or v == LIVE_BLUE or
+					v == DEAD_RED or v == DEAD_BLUE):
+					n_colored += 1
+		return n_colored
 
 	# sets coordinates in the list 'tiles' to be live with given color
 	def accept_tiles(self, tiles, color):

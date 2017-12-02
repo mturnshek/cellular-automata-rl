@@ -1,10 +1,12 @@
 import numpy as np
+
 import keras
 from keras.models import Model
 from keras.layers import Conv2D, Dense, Flatten, Input, concatenate, Dropout
 from keras.optimizers import RMSprop
 
 import keyboard
+
 
 class Agent:
     def __init__(self, env, load=False):
@@ -89,8 +91,7 @@ class Agent:
         move_tile_counter_input = Input(shape=move_tile_counter_shape)
         round_counter_input = Input(shape=round_counter_shape)
 
-        cnn = Conv2D(256, (5, 5), padding='same', activation='relu')(board_input)
-        cnn = Dropout(0.3)(cnn)
+        cnn = Conv2D(512, (3, 3), padding='same', activation='relu')(board_input)
         flat_cnn = Flatten()(cnn)
 
         denses = concatenate([flat_cnn, move_tile_counter_input, round_counter_input])
