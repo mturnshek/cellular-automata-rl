@@ -16,8 +16,8 @@ x = np.array(list(range(len(episode_rewards_small))))
 x = 200 * x # 200 epochs of training per episode reward log
 
 plt.plot(x, episode_rewards_small, color='blue', linewidth=2)
-plt.plot(x, episode_rewards_low_high_low, color='red', linewidth=2)
-plt.plot(x, episode_rewards_deep, color='green', linewidth=2)
+# plt.plot(x, episode_rewards_low_high_low, color='red', linewidth=1)
+# plt.plot(x, episode_rewards_deep, color='green', linewidth=2)
 plt.ylabel('episode reward')
 plt.xlabel('epochs')
 plt.show()

@@ -94,16 +94,16 @@ class DQN_Agent():
         self.policy = BoltzmannQPolicy()
         processor = MultiInputProcessor(nb_inputs=3)
         self.dqn = DQNAgent(model=self.model, nb_actions=self.nb_actions,
-                            memory=memory, nb_steps_warmup=10, gamma=0.95,
+                            memory=memory, nb_steps_warmup=10, gamma=0.98,
                             processor=processor, enable_dueling_network=True,
-                            target_model_update=500, policy=self.policy)
+                            target_model_update=800, policy=self.policy)
         self.dqn.compile(RMSprop())
 
     def train(self):
-        steps = 200
-        cycles = 10000
+        steps = 800
+        cycles = 400
         for i in range(cycles):
-            history = self.dqn.fit(self.env, nb_steps=steps, log_interval=50)
+            history = self.dqn.fit(self.env, nb_steps=steps, log_interval=400)
 
             # save current episode reward
             episode_rewards = history.history['episode_reward']
@@ -111,6 +111,8 @@ class DQN_Agent():
 
             # save files with current weights and logs
             print("Saving model and performance log ...")
+            percentage_complete = i/cycles*100
+            print(f"{self.model_type} training is {percentage_complete}% complete...")
             self.save(self.model_save_path)
             np.save(self.log_save_path, self.episode_reward_log)
 
