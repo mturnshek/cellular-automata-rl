@@ -20,12 +20,13 @@ def create_input(shape):
 
 
 class DQN_Agent():
-    def __init__(self, display=False):
+    def __init__(self, model_type='small', display=False):
         self.env = Environment(display=display)
         self.nb_actions = self.env.rows*self.env.cols + 1
+        self.model_type = model_type
 
-        self.model_save_path = 'weights/grow_dqn_small_weights.h5'
-        self.log_save_path = 'logs/grow_dqn_small_performance.npy'
+        self.model_save_path = f'weights/grow_dqn_{model_type}_weights.h5'
+        self.log_save_path = f'logs/grow_dqn_{model_type}_performance.npy'
         self.episode_reward_log = []
 
         self.create_model()
@@ -46,14 +47,39 @@ class DQN_Agent():
         move_tile_counter = Reshape(move_tile_counter_shape)(move_tile_counter_input)
         round_counter = Reshape(round_counter_shape)(round_counter_input)
 
+        # There are 3 neural net architectures we are trying out...
+
         ### Neural network
-        cnn = Conv2D(64, (5, 5), padding='same', activation='relu')(board)
-        flat_cnn = Flatten()(cnn)
+        if self.model_type == 'small':
+            cnn = Conv2D(64, (5, 5), padding='same', activation='relu')(board)
+            flat_cnn = Flatten()(cnn)
+            denses = concatenate([flat_cnn, move_tile_counter, round_counter])
+            denses = Dense(256, activation='relu')(denses)
+            predictions = Dense(self.nb_actions, kernel_initializer='zeros', activation='linear')(denses)
 
-        denses = concatenate([flat_cnn, move_tile_counter, round_counter])
-        denses = Dense(128, activation='relu')(denses)
+        elif self.model_type == 'low_high_low':
+            cnn1 = Conv2D(128, (3, 3), padding='same', activation='relu')(board)
+            flat_cnn1 = Flatten()(cnn1)
+            cnn2 = Conv2D(96, (7, 7), padding='same', activation='relu')(board)
+            flat_cnn2 = Flatten()(cnn2)
+            denses = concatenate([flat_cnn1, flat_cnn2, move_tile_counter, round_counter])
+            denses = Dense(256, activation='relu')(denses)
+            denses = Dense(256, activation='relu')(denses)
+            denses = Dense(256, activation='relu')(denses)
+            combined_final = concatenate([flat_cnn1, denses])
+            predictions = Dense(self.nb_actions, kernel_initializer='zeros', activation='linear')(combined_final)
 
-        predictions = Dense(self.nb_actions, kernel_initializer='zeros', activation='linear')(denses)
+        elif self.model_type == 'deep':
+            cnn1 = Conv2D(128, (3, 3), padding='same', activation='relu')(board)
+            flat_cnn1 = Flatten()(cnn1)
+            cnn2 = Conv2D(96, (7, 7), padding='same', activation='relu')(board)
+            flat_cnn2 = Flatten()(cnn2)
+            denses = concatenate([flat_cnn1, flat_cnn2, move_tile_counter, round_counter])
+            denses = Dense(256, activation='relu')(denses)
+            denses = Dense(256, activation='relu')(denses)
+            denses = Dense(256, activation='relu')(denses)
+            predictions = Dense(self.nb_actions, kernel_initializer='zeros', activation='linear')(denses)
+
         ###
 
         model = Model(
@@ -78,14 +104,15 @@ class DQN_Agent():
         cycles = 10000
         for i in range(cycles):
             history = self.dqn.fit(self.env, nb_steps=steps, log_interval=50)
+
             # save current episode reward
             episode_rewards = history.history['episode_reward']
-            self.episode_reward_log.append((i*steps, np.mean(episode_rewards)))
+            self.episode_reward_log.append(np.mean(episode_rewards))
 
-            if i % 50 == 0:
-                print("Saving model and performance log ...")
-                self.save(self.model_save_path)
-                np.save(self.log_save_path, self.episode_reward_log)
+            # save files with current weights and logs
+            print("Saving model and performance log ...")
+            self.save(self.model_save_path)
+            np.save(self.log_save_path, self.episode_reward_log)
 
     def load(self, path):
         self.dqn.load_weights(path)

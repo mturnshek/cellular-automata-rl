@@ -1,0 +1,47 @@
+models testing for grow DQN
+
+
+"small 1"
+### Neural network
+cnn = Conv2D(64, (5, 5), padding='same', activation='relu')(board)
+flat_cnn = Flatten()(cnn)
+
+denses = concatenate([flat_cnn, move_tile_counter, round_counter])
+denses = Dense(256, activation='relu')(denses)
+
+predictions = Dense(self.nb_actions, kernel_initializer='zeros', activation='linear')(denses)
+###
+
+
+"big low-high-low 1"
+### Neural network
+cnn1 = Conv2D(128, (3, 3), padding='same', activation='relu')(board)
+flat_cnn1 = Flatten()(cnn1)
+
+cnn2 = Conv2D(96, (7, 7), padding='same', activation='relu')(board)
+flat_cnn2 = Flatten()(cnn2)
+
+denses = concatenate([flat_cnn1, flat_cnn2, move_tile_counter, round_counter])
+denses = Dense(256, activation='relu')(denses)
+denses = Dense(256, activation='relu')(denses)
+denses = Dense(256, activation='relu')(denses)
+
+combined_final = concatenate([flat_cnn1, denses])
+predictions = Dense(self.nb_actions, activation='linear')(combined_final)
+###
+
+
+"big feed-forward model 1"
+### Neural network
+cnn1 = Conv2D(128, (3, 3), padding='same', activation='relu')(board)
+flat_cnn1 = Flatten()(cnn1)
+
+cnn2 = Conv2D(96, (7, 7), padding='same', activation='relu')(board)
+flat_cnn2 = Flatten()(cnn2)
+
+denses = concatenate([flat_cnn1, flat_cnn2, move_tile_counter, round_counter])
+denses = Dense(256, activation='relu')(denses)
+denses = Dense(256, activation='relu')(denses)
+denses = Dense(256, activation='relu')(denses)
+predictions = Dense(self.nb_actions, activation='linear')(denses)
+###

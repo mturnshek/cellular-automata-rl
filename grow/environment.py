@@ -3,7 +3,7 @@ import numpy as np
 from life import Life, is_live
 
 class Environment:
-    def __init__(self, rounds_per_episode=10, display=False):
+    def __init__(self, rounds_per_episode=16, display=False):
         self.life = Life(display=display)
         self.rows = self.life.rows
         self.cols = self.life.cols
